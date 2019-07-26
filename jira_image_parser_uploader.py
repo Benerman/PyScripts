@@ -210,6 +210,7 @@ password = sys.argv[3]
 if __name__ == '__main__':
     webriver_path = {'laptop':'C:\\Users\\Ben ASUS\\Documents\\Python Files\\chromedriver',
                      'tablet':'C:\\Users\\admin\\Documents\\Files to test with\\chromedriver',
-                     'cc_machine':'C:\\Users\\Tpog-Local\\Documents\\Python_Files\\chromedriver'}
+                     'cc_machine':'C:\\Users\\Tpog-Local\\Documents\\Python_Files\\chromedriver',
+                     'rpi':'/home/pi/PyScripts/chromedriver'}
     browser = webdriver.Chrome(executable_path=webriver_path['cc_machine'])
     main(username, password)
