@@ -1,34 +1,22 @@
-#usr/env/bin pyhton
+#usr/env/bin python
 
 import csv
 import sys
 import re
 import string
 import os
-
-if len(sys.argv) < 2:
-    print 'Please provide a File to to search through.'
-    sys.exit(-1)
-
-input_csv_file = sys.argv[1]	
-python_output_csv_file = sys.argv[2]
-try:
-	additional_input_csv = sys.argv[3]
-except IndexError:
-	additional_input_csv = None
+import argparse
 
 def isAuditCheck(text):
-	listOfAudits = []
-	searchTerms = re.compile(r'[a-zA-Z0-9]{3}\d{3},$')
-	results = re.search(searchTerms, text)
-	print(results)
-	# if type(results) != None:
-	# 	for result in results:
-	# 		listOfAudits = listOfAudits + result
-	# 		print(result)
-	# 	return listOfAudits
-	# else:
-	# 	return None
+	# searchTerms = re.compile(r'[a-zA-Z0-9]{3}\d{3},$')
+	searchTerms = re.compile(r'[a-zA-Z0-9]{3}\d{3},\s')
+	result = re.search(searchTerms, text)
+	if result:
+		# print('Audit found is ' + str(result))
+		return result.group(0)[0:5]
+	else:
+		return None
+
 
 def CSVParser(inputName):
 	uniqueAuditSet = set()
@@ -45,33 +33,39 @@ def CSVParser(inputName):
 			summary = row['Summary']
 			status = row['Status']
 			rowCount += 1
-			# print(summary)
-			# print(row[2])
 			uniqueAudit = isAuditCheck(summary)
-			print(uniqueAudit)
-			if type(uniqueAudit) != None:
-				for audit in uniqueAudit:
-					if audit not in dupeAudit:
-						print('Audit Found #: ' + audit)
-						uniqueAuditSet.add(audit)
-						writer.writerow([jira,audit,"https://lowesinnovation.atlassian.net/browse/" + jira,"https://lowesinnovation.atlassian.net/secure/RapidBoard.jspa?rapidView=18&search="+audit])
-						dupeAudit.add(audit)
-						uniqueJIRAS.add(jira)
-						auditCount += 1
-					else:
-						print('Audit Found #: ' + audit + ' But is a duplicate')
-						dupeAudit.add(audit)
-						dupeCount += 1
+			if uniqueAudit != None:
+				if uniqueAudit not in dupeAudit:
+					print('Audit Found #: ' + uniqueAudit)
+					uniqueAuditSet.add(uniqueAudit)
+					writer.writerow([jira,uniqueAudit,"https://lowesinnovation.atlassian.net/browse/" + jira,"https://lowesinnovation.atlassian.net/secure/RapidBoard.jspa?rapidView=18&search="+uniqueAudit])
+					dupeAudit.add(uniqueAudit)
+					uniqueJIRAS.add(jira)
+					auditCount += 1
+				else:
+					print('Audit Found #: ' + uniqueAudit + ' But is a duplicate')
+					dupeAudit.add(uniqueAudit)
+					dupeCount += 1
 			else:
 				continue
 			#print('Row Parsed, Next Row Starting')
 		print("Totals for {}".format(inputName))
 		print("Audits: {}".format(auditCount))
-		print("Totals: {}".format(auditCount,dupeCount))
+		print("Totals: {}".format(auditCount, dupeCount))
 	return {'uniqueAudit':uniqueAuditSet, 'dupeAudit':dupeAudit, 'JIRA':uniqueJIRAS, 'auditCount':auditCount, 'dupeCount':dupeCount, 'rows':rowCount}
 						
+parser = argparse.ArgumentParser(description='Search for Audits within a given CSV File, If second CSV given, will give difference between')
+parser.add_argument('input_csv_file', help='CSV file to process', type=str) # Input CSV File
 
-with open(python_output_csv_file, 'wb') as output_audits_csv:
+parser.add_argument('-c', '--compare', nargs='?') # Opt. CSV Compare file
+parser.add_argument('-k', '--keep-file', help='Will keep file from being deleted', action='store_true') # Delete file
+args= parser.parse_args()
+print(args)
+
+input_csv_file = args.input_csv_file	
+additional_input_csv = args.compare
+
+with open('audit_search_compare_output.csv', 'wb') as output_audits_csv:
 	writer = csv.writer(output_audits_csv, quoting=csv.QUOTE_MINIMAL)
 	writer.writerow(['JIRA','Audit #','Link to one JIRA in Audit','Audit Search in Kanban Board'])
 	uniqueCSV1 = CSVParser(input_csv_file)
@@ -89,27 +83,23 @@ with open(python_output_csv_file, 'wb') as output_audits_csv:
 	
 		zippedList = zip(listAuditsDiff, listJIRASDiff)		
 		
-try:
-	if additional_input_csv != None:
-		auditTotals = uniqueCSV1['auditCount'] + uniqueCSV2['auditCount']
-		dupeTotals = uniqueCSV1['dupeCount'] + uniqueCSV2['dupeCount']
-		rowCounts = (uniqueCSV1['rows']-1) + (uniqueCSV2['rows']-1)
-	else:
-		auditTotals = uniqueCSV1['auditCount']
-		dupeTotals = uniqueCSV1['dupeCount']
-		rowCounts = (uniqueCSV1['rows']-1)
-except:
-	print('No File to compare')
+if additional_input_csv != None:
+	auditTotals, dupeTotals, rowCounts =	(uniqueCSV1['auditCount'] + uniqueCSV2['auditCount'],
+											 uniqueCSV1['dupeCount'] + uniqueCSV2['dupeCount'],
+										    (uniqueCSV1['rows']-1) + (uniqueCSV2['rows']-1))
+else:
+	auditTotals, dupeTotals, rowCounts = 	(uniqueCSV1['auditCount'],
+											 uniqueCSV1['dupeCount'],
+											(uniqueCSV1['rows']-1))
 	
 print("Audit's written to CSV: {}".format(auditTotals))
 print("Duplicate Audits found: {}".format(dupeTotals))
 print("Total Count: \t\t{}".format(auditTotals + dupeTotals))
 print("Total Products Parsed: \t{}".format(rowCounts))
-try:
-	if not sys.argv[4]:
-		os.remove(input_csv_file)
-		os.remove(additional_input_csv)
-		print("Input Files Removed!")
-except IndexError:
+if args.keep_file:
 	print("Keeping Original Files")
+else:
+	os.remove(input_csv_file)
+	os.remove(additional_input_csv)
+	print("Input Files Removed!")
 print('Done')
