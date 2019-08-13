@@ -47,23 +47,56 @@ def retrieve_cookies(browser):
         return False    
 
 
-def bad_url(site, image_link):
-    if 'http' in site:
+def good_url(url_link):
+    if 'http' not in url_link:
         return False
-    if 'http' in image_link:
-        return False
-    return True
+    else:
+        return True
 
 
 def export_csv(browser):
+    if os.path.exists('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'):
+        print('File Exists, will download updated file')
+        os.remove('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv')
+    else:
+        print('file doesnt exist')
+    time.sleep(4)
     browser.get('https://lowesinnovation.atlassian.net/issues/?filter=14285&atlOrigin=eyJpIjoiNzY3MTQ1ZmEwYmYzNDVmOGIyNDkzNTM2NTA3YWRiYjUiLCJwIjoiaiJ9')
     export = click_button(browser, 'Export', selector_type='span', click=True)
-    export_all_csv = click_button(browser, 'allCsvFields', selector_type='id', click=True)
-    try:
-        print('File Exists')
-        os.path.exists(r'No Attachments _ 1 month (JIRA) (1).csv')
-    except:
-        print('file doesnt exist')
+    export_all_csv = browser.find_element_by_id('allCsvFields')
+    export_all_csv.click()
+    time.sleep(2)
+    pyautogui.hotkey('down')
+    time.sleep(1)
+    pyautogui.hotkey('enter')
+    time.sleep(2)
+    if not os.path.exists('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'):
+        print('File not downloaded, exiting script')
+        sys.exit()
+    return '/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'
+
+
+def log_in_to_jira(browser, username, password, logged_in):
+    login_form = browser.find_element_by_id('username')
+    send_login = login_form.send_keys(username)
+    send_enter = login_form.send_keys(Keys.ENTER)
+    while True:
+        print('Logging in')
+        try:
+            login_auth = browser.find_element_by_id('password')
+            break
+        except:
+            login_auth = browser.find_element_by_xpath('//id[contains(text(), "password")]')
+            break
+        finally:
+            time.sleep(1)
+    send_auth = login_auth.send_keys(password)
+    send_keys = login_auth.send_keys(Keys.ENTER)
+    time.sleep(12)
+    assert "Log in" not in browser.title
+    logged_in = True
+    return True
+
 
 def jira_login(browser, username, password):
     login_form = browser.find_element_by_id('username')
@@ -137,10 +170,10 @@ def click_button(browser, button_name, selector_type='span', click=True):
             if click:
                 button.click()
                 print('Click ' + button_name + ' = Success')
+                return True
             else:
                 print(button_name + ' was found, but not clicked')
-            break
-    return True
+                return button
 
 
 def send_img_link(browser, image_link):
@@ -182,9 +215,9 @@ def upload_exist_check(browser, image_link):
         #print('Checking if image has been uploaded')
         time.sleep(10)
         try:
-            existing_attachment = click_button(browser, jpg_filename.split('.')[0] + '[1].' + jpg_filename.split('.')[-1], 'div', click=False)
-        except:
             existing_attachment = click_button(browser, jpg_filename, 'div', click=False)
+        except:
+            existing_attachment = click_button(browser, jpg_filename.split('.')[0] + '[1].' + jpg_filename.split('.')[-1], 'div', click=False)
         print('File already Uploaded')
         return True
     except:
@@ -194,20 +227,20 @@ def upload_exist_check(browser, image_link):
 
 def upload_image_to_jira(site, browser, image_link):
     #print('Running upload_image_to_jira func')
-    if bad_url(site, image_link):
+    if not good_url(site) or not good_url(image_link):
         return False
     browser.get(site)
     if  upload_exist_check(browser, image_link):
         return False
     try:
-        dload = image_downloader(url_img_link)
+        dload = image_downloader(image_link)
         if dload:
             print('Downloaded successfully')
     except NameError as e:
         print('ERROR: {}'.format(e))
         return False
     except:
-        print('ERROR: Continuing script')
+        print('ERROR: Download Unsuccessful: Continuing script')
         return False
     if click_button(browser, 'Add attachment'):
         print('click_attachment func = True')
@@ -253,29 +286,38 @@ def csv_parser(input_name):
 
 @timing
 def main():
-    display = Display(visible=0, size=(800, 600))
-    display.start()
-    webriver_path = {'laptop':'C:\\Users\\Ben ASUS\\Documents\\Python Files\\chromedriver',
-                     'tablet':'C:\\Users\\admin\\Documents\\Files to test with\\chromedriver',
-                     'cc_machine':'C:\\Users\\Tpog-Local\\Documents\\Python_Files\\chromedriver',
-                     'rpi':'/home/pi/PyScripts/geckodriver'}
-    browser = webdriver.Firefox(executable_path=webriver_path['rpi']) 
-    browser.implicitly_wait(15)
-    pwd = os.getcwd()
-    parser = argparse.ArgumentParser(description='Search for Audits within a given CSV File, If second CSV given, will give difference between')
-    parser.add_argument('input_csv_file', help='CSV file to process', type=str) # Input CSV File
-    parser.add_argument('user', help='Username for JIRA', type=str)
-    args = parser.parse_args()
-    input_csv_file = args.input_csv_file
-    username = args.user
+    #display = Display(visible=0, size=(800, 600))
+    #display.start()
     password = getpass.getpass('Type JIRA password: ')
     password2 = getpass.getpass('Verify JIRA password: ')
     while password != password2:
         print('Passwords do not match, please try again')
         password = getpass.getpass('Type JIRA password: ')
         password2 = getpass.getpass('Verify JIRA password: ')
+    webriver_path = {'laptop':'C:\\Users\\Ben ASUS\\Documents\\Python Files\\chromedriver',
+                     'tablet':'C:\\Users\\admin\\Documents\\Files to test with\\chromedriver',
+                     'cc_machine':'C:\\Users\\Tpog-Local\\Documents\\Python_Files\\chromedriver',
+                     'rpi':'/home/pi/PyScripts/geckodriver'}
+    browser = webdriver.Firefox(executable_path=webriver_path['rpi'])
+    browser.implicitly_wait(15)
+    browser.get('https://lowesinnovation.atlassian.net/browse/CD-4330')
+    pwd = os.getcwd()
+    parser = argparse.ArgumentParser(description='Search for Audits within a given CSV File, If second CSV given, will give difference between')
+    parser.add_argument('-f', '--file', help='CSV file to process', type=str) # Input CSV File
+    parser.add_argument('user', help='Username for JIRA', type=str)
+    args = parser.parse_args()
+    try:
+        input_csv_file = args.file
+    except AttributeError:
+        input_csv_file = None
+    username = args.user
     logged_in = False
+    if not logged_in:
+        logged_in = log_in_to_jira(browser, username, password, logged_in)
     row_count = 0
+    if input_csv_file == None:
+        input_csv_file = export_csv(browser)
+        print(input_csv_file)
     urls = csv_parser(input_csv_file)
     urlList = []
     for jira, url in urls:
@@ -290,25 +332,6 @@ def main():
         jira_url = 'https://lowesinnovation.atlassian.net/browse/' + jira
         #print(jira_url)
         browser.get(jira_url)
-        if not logged_in:
-            login_form = browser.find_element_by_id('username')
-            send_login = login_form.send_keys(username)
-            send_enter = login_form.send_keys(Keys.ENTER)
-            while True:
-                print('Logging in')
-                try:
-                    login_auth = browser.find_element_by_id('password')
-                    break
-                except:
-                    login_auth = browser.find_element_by_xpath('//id[contains(text(), "password")]')
-                    break
-                finally:
-                    time.sleep(1)
-            send_auth = login_auth.send_keys(password)
-            send_keys = login_auth.send_keys(Keys.ENTER)
-            time.sleep(10)
-            assert "Log in" not in browser.title
-            logged_in = True
         upload_image_to_jira(jira_url, browser, url_img_link)
         row_count += 1
     browser.close()
