@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python2
 from __future__ import print_function
 from bs4 import BeautifulSoup
 try:
@@ -9,7 +9,15 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from functools import wraps
 from pyvirtualdisplay import Display
-import csv, os, sys, re, argparse, pickle, pyautogui, time, getpass
+import csv
+import os
+import sys
+import re
+import argparse
+import pickle
+import pyautogui
+import time
+import getpass
 
 
 def timing(f):
@@ -55,9 +63,10 @@ def good_url(url_link):
 
 
 def export_csv(browser):
-    if os.path.exists('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'):
+    pwd = os.getcwd()
+    if os.path.exists(pwd + '/Downloads/No Attachments _ 1 month (JIRA).csv'):
         print('File Exists, will download updated file')
-        os.remove('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv')
+        os.remove(pwd + '/Downloads/No Attachments _ 1 month (JIRA).csv')
     else:
         print('file doesnt exist')
     time.sleep(4)
@@ -70,10 +79,17 @@ def export_csv(browser):
     time.sleep(1)
     pyautogui.hotkey('enter')
     time.sleep(2)
-    if not os.path.exists('/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'):
+    if not os.path.exists(pwd + '/Downloads/No Attachments _ 1 month (JIRA).csv'):
+        pyautogui.hotkey('alt', 'tab')
+        time.sleep(1)
+        pyautogui.hotkey('down')
+        time.sleep(1)
+        pyautogui.hotkey('enter')
+        time.sleep(2)
+    if not os.path.exists(pwd + '/Downloads/No Attachments _ 1 month (JIRA).csv'):
         print('File not downloaded, exiting script')
         sys.exit()
-    return '/home/pi/Downloads/No Attachments _ 1 month (JIRA).csv'
+    return pwd + '/Downloads/No Attachments _ 1 month (JIRA).csv'
 
 
 def log_in_to_jira(browser, username, password, logged_in):
@@ -139,7 +155,7 @@ def image_downloader(image_url):
         os.chdir('/tmp/')
         #print('Changed to /tmp/ folder')
     except:
-        os.makedirs(pwd + '/tmp/')
+        os.makedirs(os.getcwd() + '/tmp/')
         os.chdir(os.getcwd() + '/tmp/')
         #print('Creating and Navigating /tmp/ folder')
     try:
@@ -294,23 +310,30 @@ def main():
         print('Passwords do not match, please try again')
         password = getpass.getpass('Type JIRA password: ')
         password2 = getpass.getpass('Verify JIRA password: ')
+    parser = argparse.ArgumentParser(description='Search for Audits within a given CSV File, If second CSV given, will give difference between')
+    parser.add_argument('-f', '--file', help='CSV file to process', type=str) # Input CSV File
+    parser.add_argument('-u', '--user', help='Username for JIRA', type=str)
+    args = parser.parse_args()
+    username = args.user
+    if not username:
+        try:
+            username = str(raw_input('Provide JIRA Username: '))
+        except NameError:
+            username = str(input('Provide JIRA Username: '))
+    print('JIRA Username: {}'.format(username))
     webriver_path = {'laptop':'C:\\Users\\Ben ASUS\\Documents\\Python Files\\chromedriver',
                      'tablet':'C:\\Users\\admin\\Documents\\Files to test with\\chromedriver',
                      'cc_machine':'C:\\Users\\Tpog-Local\\Documents\\Python_Files\\chromedriver',
                      'rpi':'/home/pi/PyScripts/geckodriver'}
+    # browser = webdriver.Chrome(executable_path=webriver_path['cc_machine'])
     browser = webdriver.Firefox(executable_path=webriver_path['rpi'])
     browser.implicitly_wait(15)
     browser.get('https://lowesinnovation.atlassian.net/browse/CD-4330')
     pwd = os.getcwd()
-    parser = argparse.ArgumentParser(description='Search for Audits within a given CSV File, If second CSV given, will give difference between')
-    parser.add_argument('-f', '--file', help='CSV file to process', type=str) # Input CSV File
-    parser.add_argument('user', help='Username for JIRA', type=str)
-    args = parser.parse_args()
     try:
         input_csv_file = args.file
     except AttributeError:
         input_csv_file = None
-    username = args.user
     logged_in = False
     if not logged_in:
         logged_in = log_in_to_jira(browser, username, password, logged_in)
