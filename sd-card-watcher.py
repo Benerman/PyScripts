@@ -27,24 +27,15 @@ def main():
 	while True:
 		if card in drive:
 			# os walk
-			# OR
-			# os.scandir
-			# with os.scandir(path) as it:
-			# 	count = 0
-			# 	for entry in it:
-			# 		if count > 5:
-			# 			break
-			# 		if not entry.name.startswith('.') and entry.is_file():
-			# 			print(entry.name)
-			# 			print(datetime.datetime.fromtimestamp(int(entry.stat().st_ctime)))
-			# 			count += 1
 			for image in files_on_card:
 				# image check needed '.CR2' or '.JPG'
 				# list of files in the folder
 				all_images.extend([image])
 				# file information check, Get date modified or created
-				# parse image_date to be OS friendly
-				image_date_set.add(image.date)
+				image_date = str(datetime.datetime.fromtimestamp(os.path.getctime(image))).replace('-', '').split(' ')[0]
+# parse image_date to be OS friendly
+
+				image_date_set.add(image_date)
 			if image_date_set > 0:
 				if not path isdir(os.path.join(dest, date_folder):
 					os.mkdir(image_date)
