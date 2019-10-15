@@ -7,46 +7,131 @@
 # those that arent on disk
 # 	transfer iamges to location
 
+# from __future__ import print_function
+import os, time, datetime, subprocess, shutil
+from pathlib import Path
+import tkinter as tk
+import tkinter.filedialog
 
-import os, time
-
-def moinitor_drive():
+def start_gui():
+	root = tk.Tk()
+	root.withdraw()
+	source = str(Path(tkinter.filedialog.askdirectory(
+			title="Choose source drive letter to monitor")
+		))
+	print(source)
+	dest = str(Path(tkinter.filedialog.askdirectory(
+			title="Choose destination folder to move folder containing files to")
+		))
+	print(dest)
+	return (source, dest)
+	# letter = 
 	pass
-	# move_files()
 
-def move_files():
+def monitor_drive(letter):
 	pass
-	# monitor_drive()
+	if not os.name == 'nt':
+		pass
+		# do linux version 
+	else:
+		# print(letter, letter.replace('/', ''))
+
+		# return os.system("vol {} 2>nul>nul".format(letter.replace('/', ''))) == 0
+		return letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
+		# output = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
+
+
+def copy_file(src_file, dest):
+	if os.path.isdir(dest):
+		src = Path(src_file)
+		existing = Path(os.path.join(dest, os.path.split(src_file)[-1]))
+		if existing.exists():
+			if src.stat().st_mtime == existing.stat().st_mtime:
+				print(f'mtime - File exists at destination: {str(existing)}')
+				return False
+			elif src.stat().st_size == existing.stat().st_size:
+				print(f'size - File exists at destination: {str(existing)}')
+				return False
+			else:
+				print(f'File exists but it is not exact, Copying file {src_file}')
+				shutil.copy(src_file, dest)
+				return True
+		else:
+			print(f'Moving {src_file} to {dest}')
+			shutil.copy(src_file, dest)
+			return True
+	else:
+		print('Destination does not exist, file not copied')
+		return False
+
 
 def main():
-	pass
-# 	source = get watch drive
-# 	dest = get folder to transfer files to
-
-	# move_files()
+	source, dest = start_gui()
+	drive_mounted = monitor_drive(source)
+	card_parsed = False
+	all_images = []
+	image_date_set = set()
 	while True:
-		if card in drive:
-			# os walk
-			for image in files_on_card:
-				# image check needed '.CR2' or '.JPG'
-				# list of files in the folder
-				all_images.extend([image])
-				# file information check, Get date modified or created
-				image_date = str(datetime.datetime.fromtimestamp(os.path.getctime(image))).replace('-', '').split(' ')[0]
-# parse image_date to be OS friendly
-
-				image_date_set.add(image_date)
-			if image_date_set > 0:
-				if not path isdir(os.path.join(dest, date_folder):
-					os.mkdir(image_date)
-			files_to_transfer = all_images.pop()
-			folder_loc = os.path.join(dest, date_folder)
-		#	# Copy all files to folder_loc
-
-			print(f'{len(files_to_transfer)} out of {len(files in date_folder)}')
-		else:	
-			time.sleep(5)
+		if drive_mounted and card_parsed == False:
+			print(f'loop = {drive_mounted}')
+			drive_mounted = monitor_drive(source)
+			print('drive is mounted')
+			for root, dirs, files in os.walk(source):
+				# print(root, dirs, files)
+				image_list = []
+				for file in files:
+					# image check needed '.CR2' or '.JPG'
+					print(file)
+					if '.jpg' in file.lower() or '.cr2' in file.lower():
+						image_date = str(datetime.datetime.fromtimestamp(
+							os.path.getctime(os.path.join(root,file)))
+							).replace('-', '').split(' ')[0]
+						image_date_set.add(image_date)
+						image_list.append((os.path.join(root,file), image_date))
+						print(os.path.join(root,file), image_date)
+				if len(image_list) > 0:
+					all_images.extend(image_list)
+			if len(image_date_set) > 0:
+				for folder in image_date_set:
+					if not os.path.isdir(os.path.join(dest, folder)):
+						print(f'would make dir {os.path.join(dest, folder)}')
+						os.mkdir(os.path.join(dest, folder))
+			print(all_images)
+			try:
+				if all_images_dupe == all_images:
+					print('No new file changes.')
+					card_parsed = True
+					continue
+			except UnboundLocalError:
+				print('Unprocessed changes detected, Starting Processing')
+				all_images_dupe = all_images.copy()
+			count = 0
+			for i in range(len(all_images)):
+				popped_image = all_images.pop()
+				file_to_transfer,image_date = popped_image
+				print(file_to_transfer, image_date)
+				folder_loc = os.path.join(dest, image_date)
+				print(file_to_transfer)
+				print(folder_loc)
+				if copy_file(file_to_transfer, folder_loc):
+					count += 1
+				print(f'Moved {count} out of {len(all_images_dupe)} photos')
+				print()
+			print(f'Moved {count} out of numbers {len(all_images_dupe)}') # {len(files in date_folder)}')
+			card_parsed = True
+		else:
+			if card_parsed:
+				print('Card Processed and monitoring for changes')
+				time.sleep(5)
+				drive_mounted = monitor_drive(source)
+			else:
+				print('Drive is not mounted, sleeping')
+				time.sleep(5)
+				drive_mounted = monitor_drive(source)
+			if not drive_mounted:
+				card_parsed = False
 
 
 if __name__ == '__main__':
 	main()
+
