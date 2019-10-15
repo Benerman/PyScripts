@@ -81,22 +81,23 @@ def main():
 				image_list = []
 				for file in files:
 					# image check needed '.CR2' or '.JPG'
-					print(file)
+					# print(file)
 					if '.jpg' in file.lower() or '.cr2' in file.lower():
 						image_date = str(datetime.datetime.fromtimestamp(
 							os.path.getctime(os.path.join(root,file)))
 							).replace('-', '').split(' ')[0]
 						image_date_set.add(image_date)
 						image_list.append((os.path.join(root,file), image_date))
-						print(os.path.join(root,file), image_date)
+						# print(os.path.join(root,file), image_date)
 				if len(image_list) > 0:
 					all_images.extend(image_list)
 			if len(image_date_set) > 0:
 				for folder in image_date_set:
 					if not os.path.isdir(os.path.join(dest, folder)):
-						print(f'would make dir {os.path.join(dest, folder)}')
+						# print(f'would make dir {os.path.join(dest, folder)}')
 						os.mkdir(os.path.join(dest, folder))
-			print(all_images)
+			# print(all_images)
+			image_list_len = len(all_images)
 			try:
 				if all_images_dupe == all_images:
 					print('No new file changes.')
@@ -105,19 +106,23 @@ def main():
 			except UnboundLocalError:
 				print('Unprocessed changes detected, Starting Processing')
 				all_images_dupe = all_images.copy()
+			if image_list_len != len(all_images_dupe):
+				nums = image_list_len - len(all_images_dupe)
+			else:
+				nums = len(all_images_dupe)
 			count = 0
 			for i in range(len(all_images)):
 				popped_image = all_images.pop()
 				file_to_transfer,image_date = popped_image
-				print(file_to_transfer, image_date)
+				# print(file_to_transfer, image_date)
 				folder_loc = os.path.join(dest, image_date)
-				print(file_to_transfer)
-				print(folder_loc)
+				# print(file_to_transfer)
+				# print(folder_loc)
 				if copy_file(file_to_transfer, folder_loc):
 					count += 1
-				print(f'Moved {count} out of {len(all_images_dupe)} photos')
+				print(f'Moved {count} out of {nums} photos')
 				print()
-			print(f'Moved {count} out of numbers {len(all_images_dupe)}') # {len(files in date_folder)}')
+			print(f'TOTAL: Moved {count} out of {nums} photos') # {len(files in date_folder)}')
 			card_parsed = True
 		else:
 			if card_parsed:
