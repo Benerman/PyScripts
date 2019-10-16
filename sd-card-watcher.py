@@ -130,11 +130,11 @@ def main():
 		else:
 			if card_parsed:
 				print('Card Processed and monitoring for changes')
-				time.sleep(5)
+				time.sleep(30)
 				drive_mounted = monitor_drive(source)
 			else:
 				print('Drive is not mounted, sleeping')
-				time.sleep(5)
+				time.sleep(30)
 				drive_mounted = monitor_drive(source)
 			if not drive_mounted:
 				card_parsed = False
