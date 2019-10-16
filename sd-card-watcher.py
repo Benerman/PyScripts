@@ -35,16 +35,19 @@ def monitor_drive(letter):
 		# do linux version 
 	else:
 		# print(letter, letter.replace('/', ''))
-
+		# drive_check = letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
 		# return os.system("vol {} 2>nul>nul".format(letter.replace('/', ''))) == 0
-		return letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
+		return os.path.isdir("H:\\") and letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
 		# output = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
 
 
 def copy_file(src_file, dest):
 	if os.path.isdir(dest):
 		src = Path(src_file)
-		existing = Path(os.path.join(dest, '2nd_Ref', os.path.split(src_file)[-1]))
+		dest = os.path.join(dest, '2nd_Ref')
+		if not os.path.isdir(dest):
+			os.mkdir(dest)
+		existing = Path(os.path.join(dest, os.path.split(src_file)[-1]))
 		if existing.exists():
 			if src.stat().st_mtime == existing.stat().st_mtime:
 				print(f'mtime - File exists at destination: {str(existing)}')
@@ -54,11 +57,11 @@ def copy_file(src_file, dest):
 				return False
 			else:
 				print(f'File exists but it is not exact, Copying file {src_file}')
-				shutil.copy(src_file, os.path.join(dest, '2nd_Ref'))
+				shutil.copy(src_file, dest)
 				return True
 		else:
 			print(f'Moving {src_file} to {dest}')
-			shutil.copy(src_file, os.path.join(dest, '2nd_Ref'))
+			shutil.copy(src_file, dest)
 			return True
 	else:
 		print('Destination does not exist, file not copied')
