@@ -35,15 +35,18 @@ def monitor_drive(letter):
 		# do linux version 
 	else:
 		# print(letter, letter.replace('/', ''))
-
+		# drive_check = letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
 		# return os.system("vol {} 2>nul>nul".format(letter.replace('/', ''))) == 0
-		return letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
+		return os.path.isdir("H:\\") and letter in subprocess.check_output(["fsutil", "fsinfo", "drives"]).decode()
 		# output = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
 
 
 def copy_file(src_file, dest):
 	if os.path.isdir(dest):
 		src = Path(src_file)
+		dest = os.path.join(dest, '2nd_Ref')
+		if not os.path.isdir(dest):
+			os.mkdir(dest)
 		existing = Path(os.path.join(dest, os.path.split(src_file)[-1]))
 		if existing.exists():
 			if src.stat().st_mtime == existing.stat().st_mtime:
@@ -127,11 +130,11 @@ def main():
 		else:
 			if card_parsed:
 				print('Card Processed and monitoring for changes')
-				time.sleep(5)
+				time.sleep(30)
 				drive_mounted = monitor_drive(source)
 			else:
 				print('Drive is not mounted, sleeping')
-				time.sleep(5)
+				time.sleep(30)
 				drive_mounted = monitor_drive(source)
 			if not drive_mounted:
 				card_parsed = False
