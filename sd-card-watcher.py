@@ -16,17 +16,17 @@ import tkinter.filedialog
 def start_gui():
 	root = tk.Tk()
 	root.withdraw()
-	source = str(Path(tkinter.filedialog.askdirectory(
-			title="Choose source drive letter to monitor")
-		))
+	source = get_file_path("Choose source drive letter to monitor")
 	print(source)
-	dest = str(Path(tkinter.filedialog.askdirectory(
-			title="Choose destination folder to move folder containing files to")
-		))
+	dest = get_file_path("Choose destination folder to move folder containing files to")
 	print(dest)
 	return (source, dest)
 	# letter = 
 	pass
+
+def get_file_path(title):
+	return str(Path(tkinter.filedialog.askdirectory(title=title)))
+
 
 def monitor_drive(letter):
 	pass
